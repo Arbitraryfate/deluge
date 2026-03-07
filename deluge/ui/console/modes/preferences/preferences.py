@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Nick Lanham <nick@afternight.org>
 #
@@ -6,8 +5,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 import logging
 from collections import deque
@@ -74,7 +71,7 @@ arrow to edit the other value, and escape to get back to the check box.
 """
 
 
-class ZONE(object):
+class ZONE:
     length = 3
     CATEGORIES, PREFRENCES, ACTIONS = list(range(length))
 
@@ -142,7 +139,13 @@ class Preferences(BaseMode, PopupsHandler):
         ]
 
         self.action_input = SelectInput(
-            self, None, None, [_('Cancel'), _('Apply'), _('OK')], [0, 1, 2], 0
+            self,
+            None,
+            None,
+            [_('Cancel'), _('Apply'), _('OK')],
+            [0, 1, 2],
+            0,
+            require_select_action=False,
         )
 
     def load_config(self):
@@ -311,16 +314,21 @@ class Preferences(BaseMode, PopupsHandler):
         if didupdate:
             self.parent_mode.on_config_changed()
 
-    def _update_preferences(self, core_config):
+    def _update_preferences(self, core_config, console_config=None):
         self.core_config = core_config
         for pane in self.panes:
-            pane.update_values(core_config)
+            if isinstance(pane, InterfacePane) and console_config:
+                pane.update_values(console_config)
+            else:
+                pane.update_values(core_config)
 
     def _actions_read(self, c):
         self.action_input.handle_read(c)
         if c in [curses.KEY_ENTER, util.KEY_ENTER2]:
             # take action
             if self.action_input.selected_index == 0:  # Cancel
+                # Reload stored config for panes
+                self._update_preferences(self.core_config, self.console_config)
                 self.back_to_parent()
             elif self.action_input.selected_index == 1:  # Apply
                 self._apply_prefs()

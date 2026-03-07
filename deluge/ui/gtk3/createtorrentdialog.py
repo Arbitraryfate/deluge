@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008 Andrew Resch <andrewresch@gmail.com>
 #
@@ -6,8 +5,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import division, unicode_literals
 
 import logging
 import os.path
@@ -31,7 +28,7 @@ from .torrentview_data_funcs import cell_data_size
 log = logging.getLogger(__name__)
 
 
-class CreateTorrentDialog(object):
+class CreateTorrentDialog:
     def __init__(self):
         pass
 
@@ -496,7 +493,7 @@ class CreateTorrentDialog(object):
                 *textview_buf.get_bounds(), include_hidden_chars=False
             )
             log.debug('Create torrent tracker lines: %s', trackers_text)
-            self.config['createtorrent.trackers'] = trackers_text.split('/n')
+            self.config['createtorrent.trackers'] = trackers_text.splitlines()
 
             # Append trackers liststore with unique trackers and tiers starting from last tier number.
             last_tier, orig_trackers = last_tier_trackers_from_liststore(

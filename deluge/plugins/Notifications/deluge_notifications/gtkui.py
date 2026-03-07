@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009-2010 Pedro Algarvio <pedro@algarvio.me>
 #
@@ -11,8 +10,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 import logging
 from os.path import basename
@@ -228,9 +225,7 @@ class GtkUiNotifications(CustomNotifications):
         log.debug('Failed to get torrent status to be able to show the popup')
 
     def _on_torrent_finished_event_got_torrent_status(self, torrent_status):
-        log.debug(
-            'Handler for TorrentFinishedEvent GTKUI called. ' 'Got Torrent Status'
-        )
+        log.debug('Handler for TorrentFinishedEvent GTKUI called. Got Torrent Status')
         title = _('Finished Torrent')
         torrent_status['num_files'] = torrent_status['file_progress'].count(1.0)
         message = (

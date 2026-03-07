@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
 #
@@ -6,8 +5,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 import logging
 import os.path
@@ -45,9 +42,8 @@ if windowing('X11'):
 log = logging.getLogger(__name__)
 
 
-class _GtkBuilderSignalsHolder(object):
+class _GtkBuilderSignalsHolder:
     def connect_signals(self, mapping_or_class):
-
         if isinstance(mapping_or_class, dict):
             for name, handler in mapping_or_class.items():
                 if hasattr(self, name):
@@ -75,6 +71,12 @@ class MainWindow(component.Component):
         component.Component.__init__(self, 'MainWindow', interval=2)
         self.config = ConfigManager('gtk3ui.conf')
         self.main_builder = Gtk.Builder()
+
+        # Set theme
+        Gtk.Settings.get_default().set_property(
+            'gtk-application-prefer-dark-theme',
+            self.config['prefer_dark_theme'],
+        )
 
         # Patch this GtkBuilder to avoid connecting signals from elsewhere
         #
@@ -196,11 +198,11 @@ class MainWindow(component.Component):
         if self.config['lock_tray'] and not self.visible():
             dialog = PasswordDialog(_('Enter your password to show Deluge...'))
 
-            def on_dialog_response(response_id):
-                if response_id == Gtk.ResponseType.OK:
+            def on_dialog_response(password):
+                if password is not None:
                     if (
                         self.config['tray_password']
-                        == sha(decode_bytes(dialog.get_password()).encode()).hexdigest()
+                        == sha(decode_bytes(password).encode()).hexdigest()
                     ):
                         restore()
 
@@ -255,11 +257,11 @@ class MainWindow(component.Component):
         if self.config['lock_tray'] and not self.visible():
             dialog = PasswordDialog(_('Enter your password to Quit Deluge...'))
 
-            def on_dialog_response(response_id):
-                if response_id == Gtk.ResponseType.OK:
+            def on_dialog_response(password):
+                if password:
                     if (
                         self.config['tray_password']
-                        == sha(decode_bytes(dialog.get_password()).encode()).hexdigest()
+                        == sha(decode_bytes(password).encode()).hexdigest()
                     ):
                         quit_gtkui()
 
@@ -341,7 +343,9 @@ class MainWindow(component.Component):
                 return
             self.previous_clipboard_text = text
             if text and (
-                (is_url(text) and text.endswith('.torrent')) or is_magnet(text)
+                (is_url(text) and text.endswith('.torrent'))
+                or is_magnet(text)
+                and not component.get('MenuBar').magnet_copied()
             ):
                 component.get('AddTorrentDialog').show()
                 component.get('AddTorrentDialog').on_button_url_clicked(window)

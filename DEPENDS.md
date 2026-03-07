@@ -7,13 +7,13 @@ All modules will require the [common](#common) section dependencies.
 
 ## Prerequisite
 
-- [Python] _>= 3.5_
+- [Python] _>= 3.10_
 
 ## Build
 
 - [setuptools]
 - [intltool] - Optional: Desktop file translation for \*nix.
-- [closure-compiler] - Minify javascript (alternative is [slimit])
+- [closure-compiler] - Minify javascript (alternative is [rjsmin])
 
 ## Common
 
@@ -23,26 +23,26 @@ All modules will require the [common](#common) section dependencies.
 - [rencode] _>= 1.0.2_ - Encoding library.
 - [PyXDG] - Access freedesktop.org standards for \*nix.
 - [xdg-utils] - Provides xdg-open for \*nix.
-- [six]
 - [zope.interface]
 - [chardet] - Optional: Encoding detection.
 - [setproctitle] - Optional: Renaming processes.
 - [Pillow] - Optional: Support for resizing tracker icons.
 - [dbus-python] - Optional: Show item location in filemanager.
+- [ifaddr] - Optional: Verify network interfaces.
 
-#### Linux and BSD
+### Linux and BSD
 
 - [distro] - Optional: OS platform information.
 
-#### Windows OS
+### Windows OS
 
 - [pywin32]
 - [certifi]
 
 ## Core (deluged daemon)
 
-- [libtorrent] _>= 1.1.1_
-- [GeoIP] - Optional: IP address location lookup. (_Debian: `python-geoip`_)
+- [libtorrent] _>= 1.2.0_
+- [GeoIP] or [pygeoip] - Optional: IP address country lookup. (_Debian: `python-geoip`_)
 
 ## GTK UI
 
@@ -50,9 +50,9 @@ All modules will require the [common](#common) section dependencies.
 - [PyGObject]
 - [Pycairo]
 - [librsvg] _>= 2_
-- [libappindicator3] w/GIR - Optional: Ubuntu system tray icon.
+- [ayatanaappindicator3] w/GIR - Optional: Ubuntu system tray icon.
 
-#### MacOS
+### MacOS
 
 - [GtkOSXApplication]
 
@@ -71,7 +71,7 @@ All modules will require the [common](#common) section dependencies.
 [setuptools]: https://setuptools.readthedocs.io/en/latest/
 [intltool]: https://freedesktop.org/wiki/Software/intltool/
 [closure-compiler]: https://developers.google.com/closure/compiler/
-[slimit]: https://slimit.readthedocs.io/en/latest/
+[rjsmin]: https://pypi.org/project/rjsmin/
 [openssl]: https://www.openssl.org/
 [pyopenssl]: https://pyopenssl.org
 [twisted]: https://twistedmatrix.com
@@ -81,14 +81,12 @@ All modules will require the [common](#common) section dependencies.
 [distro]: https://github.com/nir0s/distro
 [pywin32]: https://github.com/mhammond/pywin32
 [certifi]: https://pypi.org/project/certifi/
-[py2-ipaddress]: https://pypi.org/project/py2-ipaddress/
 [dbus-python]: https://pypi.org/project/dbus-python/
 [setproctitle]: https://pypi.org/project/setproctitle/
 [gtkosxapplication]: https://github.com/jralls/gtk-mac-integration
 [chardet]: https://chardet.github.io/
 [rencode]: https://github.com/aresch/rencode
 [pyxdg]: https://www.freedesktop.org/wiki/Software/pyxdg/
-[six]: https://pythonhosted.org/six/
 [xdg-utils]: https://www.freedesktop.org/wiki/Software/xdg-utils/
 [gtk+]: https://www.gtk.org/
 [pycairo]: https://cairographics.org/pycairo/
@@ -97,5 +95,6 @@ All modules will require the [common](#common) section dependencies.
 [mako]: https://www.makotemplates.org/
 [pygame]: https://www.pygame.org/
 [libnotify]: https://developer.gnome.org/libnotify/
-[python-appindicator]: https://packages.ubuntu.com/xenial/python-appindicator
+[ayatanaappindicator3]: https://lazka.github.io/pgi-docs/AyatanaAppIndicator3-0.1/index.html
 [librsvg]: https://wiki.gnome.org/action/show/Projects/LibRsvg
+[ifaddr]: https://pypi.org/project/ifaddr/

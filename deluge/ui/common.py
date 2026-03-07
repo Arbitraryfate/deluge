@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) Damien Churchill 2008-2009 <damoxc@gmail.com>
 # Copyright (C) Andrew Resch 2009 <andrewresch@gmail.com>
@@ -11,11 +10,11 @@
 """
 The ui common module contains methods and classes that are deemed useful for all the interfaces.
 """
-from __future__ import unicode_literals
 
 import logging
 import os
 from hashlib import sha1 as sha
+from typing import Tuple
 
 from deluge import bencode
 from deluge.common import decode_bytes
@@ -167,17 +166,18 @@ DISK_CACHE_KEYS = [
 ]
 
 
-class TorrentInfo(object):
+class TorrentInfo:
     """Collects information about a torrent file.
 
     Args:
         filename (str, optional): The path to the .torrent file.
         filetree (int, optional): The version of filetree to create (defaults to 1).
         torrent_file (dict, optional): A bdecoded .torrent file contents.
+        force_bt_version (int, optional): The BitTorrent spec to use for parsing (defaults to 1).
 
     """
 
-    def __init__(self, filename='', filetree=1, torrent_file=None):
+    def __init__(self, filename='', filetree=1, torrent_file=None, force_bt_version=1):
         self._filedata = None
         if torrent_file:
             self._metainfo = torrent_file
@@ -186,7 +186,7 @@ class TorrentInfo(object):
             try:
                 with open(filename, 'rb') as _file:
                     self._filedata = _file.read()
-            except IOError as ex:
+            except OSError as ex:
                 log.warning('Unable to open %s: %s', filename, ex)
                 return
 
@@ -214,12 +214,27 @@ class TorrentInfo(object):
         else:
             self._name = decode_bytes(info_dict['name'], encoding)
 
+        meta_version = info_dict['meta version'] if 'meta version' in info_dict else -1
+        is_hybrid = 'files' in info_dict and meta_version == 2
+
+        parse_v1 = False
+        parse_v2 = False
+        if is_hybrid:
+            if force_bt_version == 1:
+                parse_v1 = True
+            elif force_bt_version == 2:
+                parse_v2 = True
+        elif 'files' in info_dict:
+            parse_v1 = True
+        elif meta_version == 2 and 'file tree' in info_dict:
+            parse_v2 = True
+
         # Get list of files from torrent info
         self._files = []
-        if 'files' in info_dict:
+        if parse_v1:
             paths = {}
             dirs = {}
-            prefix = self._name if len(info_dict['files']) > 1 else ''
+            prefix = self._name
 
             for index, f in enumerate(info_dict['files']):
                 f = {k.decode(): v for k, v in f.items()}
@@ -248,24 +263,66 @@ class TorrentInfo(object):
 
             if filetree == 2:
 
-                def walk(path, item):
+                def walk(full_path, item):
                     if item['type'] == 'dir':
-                        item.update(dirs[path])
+                        item.update(dirs[full_path])
                     else:
-                        item.update(paths[path])
+                        item.update(paths[full_path])
                     item['download'] = True
 
                 file_tree = FileTree2(list(paths))
                 file_tree.walk(walk)
             else:
 
-                def walk(path, item):
+                def walk(full_path, item):
                     if isinstance(item, dict):
                         return item
-                    return [paths[path]['index'], paths[path]['length'], True]
+                    return [paths[full_path]['index'], paths[full_path]['length'], True]
 
                 file_tree = FileTree(paths)
                 file_tree.walk(walk)
+            self._files_tree = file_tree.get_tree()
+        elif parse_v2:
+
+            def single_file_torrent(inner_info_dict):
+                if len(inner_info_dict['file tree']) > 1:
+                    return False
+
+                file_name = [key for key in inner_info_dict['file tree']][0]
+                return inner_info_dict['name'] == file_name
+
+            if not single_file_torrent(info_dict):
+                info_dict['file tree'] = {info_dict['name']: info_dict['file tree']}
+
+            if filetree == 2:
+
+                def walk(full_path, item):
+                    if item['type'] == 'file':
+                        item['path'] = full_path
+                        self._files.append(
+                            {
+                                'path': full_path,
+                                'size': item['length'],
+                                'download': True,
+                            }
+                        )
+                    item['download'] = True
+
+                file_tree = FileTree2BTv2(info_dict['file tree'])
+                file_tree.walk(walk)
+            else:
+
+                def walk(full_path, item):
+                    if isinstance(item, dict):
+                        return item
+                    self._files.append(
+                        {'path': full_path, 'size': item[1], 'download': True}
+                    )
+                    return [item[0], item[1], True]
+
+                file_tree = FiletreeBTv2(info_dict['file tree'])
+                file_tree.walk(walk)
+
             self._files_tree = file_tree.get_tree()
         else:
             self._files.append(
@@ -387,15 +444,33 @@ class TorrentInfo(object):
         return self._filedata
 
 
-class FileTree2(object):
+class FileTree2:
     """
-    Converts a list of paths in to a file tree.
+    Converts a list of paths, from a V1 torrent, into a file tree.
 
-    :param paths: The paths to be converted
-    :type paths: list
+    Each file will have the dictionary structure of:
+        { file_name: {type, path, index, length, download} }
+    where:
+        type (str): will always be "file"
+        path (str): the absolute file path from the root the torrent
+        index (int): the index of file in the torrent
+        length (int): the size of the file, in bytes
+        download (bool): marks the file to download
+
+    Folder will be dictionaries of files:
+        { dir1: type, contents: {file_name1: {...}, file_name2: {...}}, dir2: ... }
+    where:
+        type (str): will always be "dir"
+        contents (dict): a dictionary of inner files and folders
+
+    The entire tree will start with a root dictionary:
+        { contents: {dirs...}, type: "dir" }
+
+    Args:
+        paths (list): The paths to be converted.
     """
 
-    def __init__(self, paths):
+    def __init__(self, paths: list):
         self.tree = {'contents': {}, 'type': 'dir'}
 
         def get_parent(path):
@@ -467,15 +542,25 @@ class FileTree2(object):
         return '\n'.join(lines)
 
 
-class FileTree(object):
+class FileTree:
     """
-    Convert a list of paths in a file tree.
+    Converts a dict of paths, from a V1 torrent, into a file tree.
 
-    :param paths: The paths to be converted.
-    :type paths: list
+    Each file will have the dictionary structure of:
+        { file_name: [index, length, download] }
+    Where:
+        index (int): the index of file in the torrent
+        length (int): the size of the file, in bytes
+        download (bool): marks the file to download
+
+    Folder will be dictionaries of files:
+        { dir1: {file_name1: [...], file_name2: [...]}, dir2: ... }
+
+    Args:
+        paths (dict): The paths to be converted.
     """
 
-    def __init__(self, paths):
+    def __init__(self, paths: dict):
         self.tree = {}
 
         def get_parent(path):
@@ -501,8 +586,8 @@ class FileTree(object):
         """
         Return the tree, after first converting all file lists to a tuple.
 
-        :returns: the file tree.
-        :rtype: dictionary
+        Returns:
+            dict: the file tree.
         """
 
         def to_tuple(path, item):
@@ -518,10 +603,10 @@ class FileTree(object):
         Walk through the file tree calling the callback function on each item
         contained.
 
-        :param callback: The function to be used as a callback, it should have
-            the signature func(item, path) where item is a `tuple` for a file
-            and `dict` for a directory.
-        :type callback: function
+        Args:
+            callback (function): The function to be used as a callback, it should have
+                the signature func(item, path) where item is a `tuple` for a file
+                and `dict` for a directory.
         """
 
         def walk(directory, parent_path):
@@ -550,3 +635,94 @@ class FileTree(object):
 
         self.walk(write)
         return '\n'.join(lines)
+
+
+class FiletreeBTv2(FileTree):
+    """
+    Converts a dict of paths, from a V2 torrent, into a file tree.
+
+    Each file will have the dictionary structure of:
+        { file_name: [index, length, download] }
+    Where:
+        index (int): the index of file in the torrent
+        length (int): the size of the file, in bytes
+        download (bool): marks the file to download
+
+    Folder will be dictionaries of files:
+        { dir1: {file_name1: [...], file_name2: [...]}, dir2: ... }
+
+    Args:
+        file_tree (dict): The paths to be converted.
+    """
+
+    def __init__(self, file_tree):
+        self.tree = {}
+
+        def get_parent(curr_tree_dict, index, parent) -> int:
+            for key, item in curr_tree_dict.items():
+                key = decode_bytes(key)
+                if b'' in item:
+                    parent[key] = [index, item[b''][b'length']]
+                    index += 1
+                else:
+                    parent[key] = {}
+                    index = get_parent(item, index, parent[key])
+            return index
+
+        get_parent(file_tree, 0, self.tree)
+
+
+class FileTree2BTv2(FileTree2):
+    """
+    Converts a dict of paths, from a V2 torrent, into a file tree.
+
+    Each file will have the dictionary structure of:
+        { file_name: {type, path, index, length, download} }
+    where:
+        type (str): will always be "file"
+        path (str): the absolute file path from the root the torrent
+        index (int): the index of file in the torrent
+        length (int): the size of the file, in bytes
+        download (bool): marks the file to download
+
+    Folder will be dictionaries of files:
+        { dir1: type, contents: {file_name1: {...}, file_name2: {...}}, dir2: ... }
+    where:
+        type (str): will always be "dir"
+        contents (dict): a dictionary of inner files and folders
+
+    The entire tree will start with a root dictionary:
+        { contents: {dirs...}, type: "dir" }
+
+    Args:
+        file_tree (dict): The paths to be converted.
+    """
+
+    def __init__(self, file_tree):
+        self.tree = {'contents': {}, 'type': 'dir'}
+
+        def get_parent(curr_tree_dict, index, parent) -> Tuple[int, int]:
+            total_length = 0
+            for key, item in curr_tree_dict.items():
+                key = decode_bytes(key)
+                if b'' in item:
+                    length = item[b''][b'length']
+                    total_length += length
+                    parent['contents'][key] = {
+                        'index': index,
+                        'length': length,
+                        'type': 'file',
+                    }
+                    index += 1
+                else:
+                    parent['contents'][key] = {
+                        'contents': {},
+                        'type': 'dir',
+                        'length': 0,
+                    }
+                    index, length = get_parent(item, index, parent['contents'][key])
+                    parent['contents'][key]['length'] = length
+                    total_length += length
+            return index, total_length
+
+        get_parent(file_tree, 0, self.tree)

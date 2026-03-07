@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009 Ian Martin <ianmartin@cantab.net>
 # Copyright (C) 2008 Martijn Voncken <mvoncken@gmail.com>
@@ -10,11 +9,12 @@
 # This file is part of Deluge and is licensed under GNU General Public License 3.0, or later, with
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
-#
-
-from __future__ import division, unicode_literals
 
 import logging
+
+import gi  # isort:skip (Required before Gtk import).
+
+gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk
 from gi.repository.Gdk import RGBA
@@ -85,7 +85,7 @@ def text_to_rgba(color):
 
 class GraphsTab(Tab):
     def __init__(self, colors):
-        super(GraphsTab, self).__init__()
+        super().__init__()
 
         builder = Gtk.Builder()
         builder.add_from_file(get_resource('tabs.ui'))
@@ -193,7 +193,9 @@ class GraphsTab(Tab):
         self.colors = colors
         # Fake switch page to update the graph colors (HACKY)
         self._on_notebook_switch_page(
-            self.notebook, None, self.notebook.get_current_page()  # This is unused
+            self.notebook,
+            None,
+            self.notebook.get_current_page(),  # This is unused
         )
 
     def _on_intervals_changed(self, intervals):
@@ -270,7 +272,7 @@ class GtkUI(Gtk3PluginBase):
         for graph, colors in self.config['colors'].items():
             gtkconf[graph] = {}
             for value, color in colors.items():
-                color_btn = self.builder.get_object('%s_%s_color' % (graph, value))
+                color_btn = self.builder.get_object(f'{graph}_{value}_color')
                 try:
                     gtkconf[graph][value] = color_btn.get_color().to_string()
                 except Exception:
@@ -285,7 +287,7 @@ class GtkUI(Gtk3PluginBase):
         for graph, colors in self.config['colors'].items():
             for value, color in colors.items():
                 try:
-                    color_btn = self.builder.get_object('%s_%s_color' % (graph, value))
+                    color_btn = self.builder.get_object(f'{graph}_{value}_color')
                     color_btn.set_rgba(text_to_rgba(color))
                 except Exception as ex:
                     log.debug('Unable to set %s %s %s: %s', graph, value, color, ex)

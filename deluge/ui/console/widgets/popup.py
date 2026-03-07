@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Nick Lanham <nick@afternight.org>
 #
@@ -6,8 +5,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 import logging
 
@@ -25,7 +22,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class ALIGN(object):
+class ALIGN:
     TOP_LEFT = 1
     TOP_CENTER = 2
     TOP_RIGHT = 3
@@ -38,7 +35,7 @@ class ALIGN(object):
     DEFAULT = MIDDLE_CENTER
 
 
-class PopupsHandler(object):
+class PopupsHandler:
     def __init__(self):
         self._popups = []
 
@@ -72,7 +69,7 @@ class Popup(BaseWindow, InputKeyHandler):
         close_cb=None,
         encoding=None,
         base_popup=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Init a new popup.  The default constructor will handle sizing and borders and the like.
@@ -133,7 +130,6 @@ class Popup(BaseWindow, InputKeyHandler):
         BaseWindow.refresh(self)
 
     def calculate_size(self):
-
         if isinstance(self.height_req, float) and 0.0 < self.height_req <= 1.0:
             height = int((self.parent.rows - 2) * self.height_req)
         else:
@@ -216,7 +212,7 @@ class SelectablePopup(BaseInputPane, Popup):
         input_cb=None,
         allow_rearrange=False,
         immediate_action=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -255,7 +251,7 @@ class SelectablePopup(BaseInputPane, Popup):
 
     def set_selection(self, index):
         """Set a selected index"""
-        self.active_input = index
+        self.active_input = min(index, len(self.inputs) - 1)
 
     def add_line(
         self,
@@ -266,7 +262,7 @@ class SelectablePopup(BaseInputPane, Popup):
         foreground=None,
         selectable=True,
         selected=False,
-        **kwargs
+        **kwargs,
     ):
         hotkey = None
         self.cb_arg[name] = cb_arg
@@ -339,7 +335,7 @@ class MessagePopup(Popup, BaseInputPane):
         align=ALIGN.DEFAULT,
         height_req=0.75,
         width_req=0.5,
-        **kwargs
+        **kwargs,
     ):
         self.message = message
         Popup.__init__(

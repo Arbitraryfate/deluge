@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009 Ian Martin <ianmartin@cantab.net>
 # Copyright (C) 2008 Damien Churchill <damoxc@gmail.com>
@@ -9,8 +8,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import division, unicode_literals
 
 import logging
 import time
@@ -96,8 +93,9 @@ class Core(CorePluginBase):
             'dht_cache_nodes': lambda s: s['dht.dht_node_cache'],
             'dht_torrents': lambda s: s['dht.dht_torrents'],
             'num_peers': lambda s: s['peer.num_peers_connected'],
-            'num_connections': lambda s: s['peer.num_peers_connected']
-            + s['peer.num_peers_half_open'],
+            'num_connections': lambda s: (
+                s['peer.num_peers_connected'] + s['peer.num_peers_half_open']
+            ),
         }
 
         # initialize stats object

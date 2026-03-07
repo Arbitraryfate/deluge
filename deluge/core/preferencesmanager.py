@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008-2010 Andrew Resch <andrewresch@gmail.com>
 #
@@ -8,13 +7,13 @@
 #
 
 
-from __future__ import unicode_literals
-
 import logging
 import os
 import platform
 import random
 import threading
+from urllib.parse import quote_plus
+from urllib.request import urlopen
 
 from twisted.internet.task import LoopingCall
 
@@ -24,17 +23,14 @@ import deluge.configmanager
 from deluge._libtorrent import lt
 from deluge.event import ConfigValueChangedEvent
 
+GeoIP = None
 try:
-    import GeoIP
+    from GeoIP import GeoIP
 except ImportError:
-    GeoIP = None
-
-try:
-    from urllib.parse import quote_plus
-    from urllib.request import urlopen
-except ImportError:
-    from urllib import quote_plus
-    from urllib2 import urlopen
+    try:
+        from pygeoip import GeoIP
+    except ImportError:
+        pass
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +48,11 @@ DEFAULT_PREFS = {
     'listen_random_port': None,
     'listen_use_sys_port': False,
     'listen_reuse_port': True,
+    'ssl_torrents': False,
+    'ssl_listen_ports': [6892, 6896],
+    'ssl_torrents_certs': os.path.join(
+        deluge.configmanager.get_config_dir(), 'ssl_torrents_certs'
+    ),
     'outgoing_ports': [0, 0],
     'random_outgoing_ports': True,
     'copy_torrent_file': False,
@@ -73,9 +74,11 @@ DEFAULT_PREFS = {
     'max_download_speed': -1.0,
     'max_upload_slots_global': 4,
     'max_half_open_connections': (
-        lambda: deluge.common.windows_check()
-        and (lambda: deluge.common.vista_check() and 4 or 8)()
-        or 50
+        lambda: (
+            deluge.common.windows_check()
+            and (lambda: deluge.common.vista_check() and 4 or 8)()
+            or 50
+        )
     )(),
     'max_connections_per_second': 20,
     'ignore_limits_on_local_network': True,
@@ -89,6 +92,7 @@ DEFAULT_PREFS = {
     'max_active_downloading': 3,
     'max_active_limit': 8,
     'dont_count_slow_torrents': False,
+    'announce_to_all_tiers': False,
     'queue_new_to_top': False,
     'stop_seed_at_ratio': False,
     'remove_seed_at_ratio': False,
@@ -202,9 +206,12 @@ class PreferencesManager(component.Component):
         self.__set_listen_on()
 
     def __set_listen_on(self):
-        """ Set the ports and interface address to listen for incoming connections on."""
+        """Set the ports and interface address to listen for incoming connections on."""
         if self.config['random_port']:
-            if not self.config['listen_random_port']:
+            if (
+                not self.config['listen_reuse_port']
+                or not self.config['listen_random_port']
+            ):
                 self.config['listen_random_port'] = random.randrange(49152, 65525)
             listen_ports = [
                 self.config['listen_random_port']
@@ -225,9 +232,27 @@ class PreferencesManager(component.Component):
             self.config['listen_use_sys_port'],
         )
         interfaces = [
-            '%s:%s' % (interface, port)
+            f'{interface}:{port}'
             for port in range(listen_ports[0], listen_ports[1] + 1)
         ]
+
+        if self.config['ssl_torrents']:
+            if self.config['random_port']:
+                ssl_listen_ports = [self.config['listen_random_port'] + 1] * 2
+            else:
+                ssl_listen_ports = self.config['ssl_listen_ports']
+            interfaces.extend(
+                [
+                    f'{interface}:{port}s'
+                    for port in range(ssl_listen_ports[0], ssl_listen_ports[1] + 1)
+                ]
+            )
+            log.debug(
+                'SSL listen Interface: %s, Ports: %s',
+                interface,
+                listen_ports,
+            )
+
         self.core.apply_session_settings(
             {
                 'listen_system_port_fallback': self.config['listen_use_sys_port'],
@@ -371,6 +396,9 @@ class PreferencesManager(component.Component):
     def _on_set_dont_count_slow_torrents(self, key, value):
         self.core.apply_session_setting('dont_count_slow_torrents', value)
 
+    def _on_set_announce_to_all_tiers(self, key, value):
+        self.core.apply_session_setting('announce_to_all_tiers', value)
+
     def _on_set_send_info(self, key, value):
         """sends anonymous stats home"""
         log.debug('Sending anonymous stats..')
@@ -400,7 +428,7 @@ class PreferencesManager(component.Component):
                             + quote_plus(':'.join(self.config['enabled_plugins']))
                         )
                         urlopen(url)
-                    except IOError as ex:
+                    except OSError as ex:
                         log.debug('Network error while trying to send info: %s', ex)
                     else:
                         self.config['info_sent'] = now
@@ -464,11 +492,9 @@ class PreferencesManager(component.Component):
         # Load the GeoIP DB for country look-ups if available
         if os.path.exists(geoipdb_path):
             try:
-                self.core.geoip_instance = GeoIP.open(
-                    geoipdb_path, GeoIP.GEOIP_STANDARD
-                )
-            except AttributeError:
-                log.warning('GeoIP Unavailable')
+                self.core.geoip_instance = GeoIP(geoipdb_path, 0)
+            except Exception as ex:
+                log.warning('GeoIP Unavailable: %s', ex)
         else:
             log.warning('Unable to find GeoIP database file: %s', geoipdb_path)
 

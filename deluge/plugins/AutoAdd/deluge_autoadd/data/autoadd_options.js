@@ -17,7 +17,8 @@ Ext.ns('Deluge.ux.AutoAdd');
  */
 Deluge.ux.AutoAdd.AutoAddWindowBase = Ext.extend(Ext.Window, {
     width: 350,
-    autoHeight: true,
+    height: 500,
+    layout: 'fit',
     closeAction: 'hide',
 
     spin_ids: ['max_download_speed', 'max_upload_speed', 'stop_ratio'],
@@ -69,6 +70,7 @@ Deluge.ux.AutoAdd.AutoAddWindowBase = Ext.extend(Ext.Window, {
 
         this.form = this.add({
             xtype: 'form',
+            layout: 'fit',
             baseCls: 'x-plain',
             bodyStyle: 'padding: 5px',
             items: [
@@ -90,9 +92,8 @@ Deluge.ux.AutoAdd.AutoAddWindowBase = Ext.extend(Ext.Window, {
 
         options['enabled'] = Ext.getCmp('enabled').getValue();
         options['path'] = Ext.getCmp('path').getValue();
-        options['download_location'] = Ext.getCmp(
-            'download_location'
-        ).getValue();
+        options['download_location'] =
+            Ext.getCmp('download_location').getValue();
         options['move_completed_path'] = Ext.getCmp(
             'move_completed_path'
         ).getValue();

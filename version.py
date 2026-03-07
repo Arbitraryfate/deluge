@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Authors: Douglas Creager <dcreager@dcreager.net>
 #          Calum Lind <calumlind@gmail.com>
 #
@@ -31,8 +30,6 @@
 #   include RELEASE-VERSION
 #
 
-from __future__ import print_function, unicode_literals
-
 import os
 import subprocess
 
@@ -58,9 +55,9 @@ def call_git_describe(prefix='', suffix=''):
 
 def get_version(prefix='deluge-', suffix='.dev0'):
     try:
-        with open(VERSION_FILE, 'r') as f:
+        with open(VERSION_FILE) as f:
             release_version = f.readline().strip()
-    except IOError:
+    except OSError:
         release_version = None
 
     version = call_git_describe(prefix, suffix)
@@ -68,7 +65,10 @@ def get_version(prefix='deluge-', suffix='.dev0'):
     if not version:
         version = release_version
     if not version:
-        raise ValueError('Cannot find the version number!')
+        raise ValueError(
+            'Cannot find the version number! If you are using a git clone, '
+            'please ensure you have tags fetched (e.g., git fetch --tags).'
+        )
 
     if version != release_version:
         with open(VERSION_FILE, 'w') as f:

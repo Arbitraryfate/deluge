@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2014 Calum Lind <calumlind@gmail.com>
 # Copyright (C) 2010 Damien Churchill <damoxc@gmail.com>
@@ -15,18 +14,16 @@ Usage: python minify_web_js.py deluge/ui/web/js/deluge-all
 
 """
 
-from __future__ import print_function, unicode_literals
-
 import fileinput
 import fnmatch
 import os
 import subprocess
 import sys
-from distutils.spawn import find_executable
+from shutil import which
 
 closure_cmd = None
 for cmd in ['closure-compiler', 'closure']:
-    if find_executable(cmd):
+    if which(cmd):
         closure_cmd = cmd
         break
 
@@ -50,14 +47,14 @@ def minify_closure(file_in, file_out):
         return False
 
 
-# Closure outputs smallest files but it is a java-based command, so have slimit
+# Closure outputs smallest files but java-based command, can use rJSmin
 # as a python-only fallback.
 #
-#   deluge-all.js: Closure 127K, Slimit: 143K, JSMin: 162K
+#   deluge-all.js: Closure 131K, rJSmin: 148K
 #
 if not closure_cmd:
     try:
-        from slimit import minify as minify
+        from rjsmin import jsmin as minify
     except ImportError:
         print('Warning: No minifying command found.')
         minify = None
@@ -72,7 +69,7 @@ def source_files_list(source_dir):
 
         order_file = os.path.join(root, '.order')
         if os.path.isfile(order_file):
-            with open(order_file, 'r') as _file:
+            with open(order_file) as _file:
                 for line in _file:
                     if line.startswith('+ '):
                         order_filename = line.split()[1]
@@ -99,7 +96,7 @@ def minify_file(file_debug, file_minified):
         return minify_closure(file_debug, file_minified)
     elif minify:
         with open(file_minified, 'w') as file_out:
-            with open(file_debug, 'r') as file_in:
+            with open(file_debug) as file_in:
                 file_out.write(minify(file_in.read()))
                 return True
 
@@ -119,6 +116,8 @@ def minify_js_dir(source_dir):
     print('Minifying %s' % source_dir)
     if not minify_file(file_debug_js, file_minified_js):
         print('Warning: Failed minifying files %s, debug only' % source_dir)
+        if os.path.isfile(file_minified_js):
+            os.remove(file_minified_js)
 
 
 if __name__ == '__main__':

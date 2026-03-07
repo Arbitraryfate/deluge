@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009-2012 Damien Churchill <damoxc@gmail.com>
 #
@@ -9,8 +8,6 @@
 #
 
 """Script to parse javascript files for translation strings and generate gettext.js"""
-
-from __future__ import print_function, unicode_literals
 
 import os
 import re
@@ -63,7 +60,7 @@ def check_missing_markup(js_dir):
                         # Ignore string that contains only digits or specificied strings in skip.
                         if (
                             not string
-                            or string.split('\'')[1].isdigit()
+                            or string.split("'")[1].isdigit()
                             or any(x in string for x in skip)
                         ):
                             continue
@@ -85,7 +82,7 @@ GETTEXT_SUBST_TPL = "GetText.add('{key}','${{escape(_(\"{key}\"))}}')\n"
 
 
 def create_gettext_js(js_dir):
-    string_re = re.compile('_\\(\'(.*?)\'\\)')
+    string_re = re.compile("_\\('(.*?)'\\)")
     strings = {}
     for root, dnames, files in os.walk(js_dir):
         for filename in files:
@@ -119,4 +116,4 @@ if __name__ == '__main__':
         print('Possible missed text for translation markup:')
         for text, filenames in missed_markup.iteritems():
             for filename_lineno in filenames:
-                print('{0:<58}    {1}'.format(':'.join(filename_lineno), text))
+                print('{:<58}    {}'.format(':'.join(filename_lineno), text))

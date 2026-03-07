@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009 Andrew Resch <andrewresch@gmail.com>
 # Copyright (C) 2011 Pedro Algarvio <pedro@algarvio.me>
@@ -8,8 +7,6 @@
 # See LICENSE for more details.
 #
 
-from __future__ import unicode_literals
-
 import logging
 import subprocess
 import sys
@@ -18,7 +15,7 @@ from twisted.internet import defer, reactor, ssl
 from twisted.internet.protocol import ClientFactory
 
 from deluge import error
-from deluge.common import get_localhost_auth, get_version
+from deluge.common import VersionSplit, get_localhost_auth, get_version
 from deluge.decorators import deprecated
 from deluge.transfer import DelugeTransferProtocol
 
@@ -33,7 +30,7 @@ def format_kwargs(kwargs):
     return ', '.join([key + '=' + str(value) for key, value in kwargs.items()])
 
 
-class DelugeRPCRequest(object):
+class DelugeRPCRequest:
     """
     This object is created whenever there is a RPCRequest to be sent to the
     daemon.  It is generally only used by the DaemonProxy's call method.
@@ -105,7 +102,7 @@ class DelugeRPCProtocol(DelugeTransferProtocol):
             return
         if len(request) < 3:
             log.debug(
-                'Received invalid message: number of items in ' 'response is %s',
+                'Received invalid message: number of items in response is %s',
                 len(request),
             )
             return
@@ -230,6 +227,7 @@ class DelugeRPCClientFactory(ClientFactory):
         self.daemon.host = None
         self.daemon.port = None
         self.daemon.username = None
+        self.daemon.daemon_version = None
         self.daemon.connected = False
 
         if (
@@ -243,7 +241,7 @@ class DelugeRPCClientFactory(ClientFactory):
             self.daemon.disconnect_callback()
 
 
-class DaemonProxy(object):
+class DaemonProxy:
     pass
 
 
@@ -263,6 +261,7 @@ class DaemonSSLProxy(DaemonProxy):
         self.host = None
         self.port = None
         self.username = None
+        self.daemon_version = None
         self.authentication_level = 0
 
         self.connected = False
@@ -392,7 +391,7 @@ class DaemonSSLProxy(DaemonProxy):
         log.debug('__on_connect called')
 
         def on_info(daemon_info):
-            self.daemon_info = daemon_info
+            self.daemon_version = daemon_info
             log.debug('Got info from daemon: %s', daemon_info)
             self.daemon_info_deferred.callback(daemon_info)
 
@@ -526,7 +525,7 @@ class DaemonStandaloneProxy(DaemonProxy):
         self.__daemon.core.eventmanager.deregister_event_handler(event, handler)
 
 
-class DottedObject(object):
+class DottedObject:
     """
     This is used for dotted name calls to client
     """
@@ -551,7 +550,7 @@ class RemoteMethod(DottedObject):
         return self.daemon.call(self.base, *args, **kwargs)
 
 
-class Client(object):
+class Client:
     """
     This class is used to connect to a daemon process and issue RPC requests.
     """
@@ -615,7 +614,7 @@ class Client(object):
             d.addErrback(on_authenticate_fail)
             return d
 
-        d.addCallback(on_connected)
+        d.addCallbacks(on_connected)
         d.addErrback(on_connect_fail)
         if not skip_authentication:
             d.addCallback(authenticate, username, password)
@@ -743,6 +742,26 @@ class Client(object):
             )
 
         return None
+
+    @property
+    def daemon_version(self) -> str:
+        """Get the connected daemon version
+
+        Returns:
+            The daemon version
+        """
+        return self._daemon_proxy.daemon_version if self.connected() else ''
+
+    def daemon_version_check_min(self, min_version=get_version()) -> bool:
+        """Check connected daemon against a minimum version.
+
+        Returns:
+            If connected daemon meets minimum version requirement.
+        """
+        if not (self.daemon_version and min_version):
+            return False
+
+        return VersionSplit(self.daemon_version) >= VersionSplit(min_version)
 
     def register_event_handler(self, event, handler):
         """

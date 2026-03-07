@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Nick Lanham <nick@afternight.org>
 # Copyright (C) 2008-2009 Ido Abramovich <ido.deluge@gmail.com>
@@ -8,8 +7,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 import logging
 
@@ -52,7 +49,7 @@ class BaseInputPane(InputKeyHandler):
         border_off_east=0,
         border_off_south=0,
         active_wrap=False,
-        **kwargs
+        **kwargs,
     ):
         InputKeyHandler.__init__(self)
         self.inputs = []
@@ -158,7 +155,7 @@ class BaseInputPane(InputKeyHandler):
                 self.visible_content_pane_width,
                 value,
                 col=col,
-                **kwargs
+                **kwargs,
             )
         )
 

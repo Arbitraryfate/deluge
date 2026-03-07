@@ -1,11 +1,9 @@
-pytest != 5.2.3, < 5.4
+libtorrent
+pytest
 pytest-twisted
 pytest-cov
+pytest-rerunfailures
 mock
 pre-commit
-flake8<=3.7.9
-flake8-quotes
-flake8-isort
-pep8-naming
-mccabe
 pylint
+cryptography

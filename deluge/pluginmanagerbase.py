@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007 Andrew Resch <andrewresch@gmail.com>
 #
@@ -9,8 +8,8 @@
 
 
 """PluginManagerBase"""
-from __future__ import unicode_literals
 
+import email
 import logging
 import os.path
 
@@ -37,7 +36,7 @@ METADATA_KEYS = [
 ]
 
 DEPRECATION_WARNING = """
-The plugin %s is not using the "deluge.plugins" namespace.
+The plugin %s is not using the "deluge_" namespace.
 In order to avoid package name clashes between regular python packages and
 deluge plugins, the way deluge plugins should be created has changed.
 If you're seeing this message and you're not the developer of the plugin which
@@ -47,10 +46,25 @@ git repository to have an idea of what needs to be changed.
 """
 
 
-class PluginManagerBase(object):
+class PluginManagerBase:
     """PluginManagerBase is a base class for PluginManagers to inherit"""
 
-    def __init__(self, config_file, entry_name):
+    def __init__(
+        self,
+        config_file: str,
+        entry_name: str,
+        plugin_dirs: list[str | os.PathLike] | None = None,
+    ) -> None:
+        """Initialise the plugin manager.
+
+        Args:
+            config_file: Name of the config file (e.g. 'core.conf').
+            entry_name: The setuptools entry-point group to load plugins from
+                (e.g. 'deluge.plugin.core').
+            plugin_dirs: Directories to scan for plugins. Defaults to None,
+                which uses the standard base and user plugin directories.
+                Primarily intended for testing.
+        """
         log.debug('Plugin manager init..')
 
         self.config = deluge.configmanager.ConfigManager(config_file)
@@ -66,6 +80,9 @@ class PluginManagerBase(object):
 
         # Loaded plugins
         self.plugins = {}
+
+        # Directories scanned for plugins
+        self.plugin_dirs = plugin_dirs if plugin_dirs else self.default_plugin_dirs()
 
         # Scan the plugin folders for plugins
         self.scan_for_plugins()
@@ -92,8 +109,9 @@ class PluginManagerBase(object):
         """Returns a list of enabled plugins"""
         return list(self.plugins)
 
-    def scan_for_plugins(self):
-        """Scans for available plugins"""
+    @staticmethod
+    def default_plugin_dirs() -> list[str]:
+        """Returns the default directories to scan for plugins."""
         base_dir = deluge.common.resource_filename('deluge', 'plugins')
         user_dir = os.path.join(deluge.configmanager.get_config_dir(), 'plugins')
         base_subdir = [
@@ -102,12 +120,14 @@ class PluginManagerBase(object):
             if os.path.isdir(os.path.join(base_dir, f))
         ]
         plugin_dirs = [base_dir, user_dir] + base_subdir
+        return plugin_dirs
 
-        for dirname in plugin_dirs:
+    def scan_for_plugins(self) -> None:
+        """Scan plugin_dirs for available plugins."""
+        str_dirs = [str(d) for d in self.plugin_dirs]
+        for dirname in str_dirs:
             pkg_resources.working_set.add_entry(dirname)
-        self.pkg_env = pkg_resources.Environment(
-            plugin_dirs, platform=None, python=None
-        )
+        self.pkg_env = pkg_resources.Environment(str_dirs, platform=None, python=None)
 
         self.available_plugins = []
         for name in self.pkg_env:
@@ -164,7 +184,7 @@ class PluginManagerBase(object):
                 log.exception(ex)
                 return_d = defer.fail(False)
 
-            if not instance.__module__.startswith('deluge.plugins.'):
+            if not instance.__module__.startswith('deluge_'):
                 import warnings
 
                 warnings.warn_explicit(
@@ -257,28 +277,25 @@ class PluginManagerBase(object):
 
     def get_plugin_info(self, name):
         """Returns a dictionary of plugin info from the metadata"""
-        info = {}.fromkeys(METADATA_KEYS)
-        last_header = ''
-        cont_lines = []
-        # Missing plugin info
+
         if not self.pkg_env[name]:
             log.warning('Failed to retrieve info for plugin: %s', name)
-            for k in info:
-                info[k] = 'not available'
+            info = {}.fromkeys(METADATA_KEYS, '')
+            info['Name'] = info['Version'] = 'not available'
             return info
-        for line in self.pkg_env[name][0].get_metadata('PKG-INFO').splitlines():
-            if not line:
-                continue
-            if line[0] in ' \t' and (
-                len(line.split(':', 1)) == 1 or line.split(':', 1)[0] not in info
-            ):
-                # This is a continuation
-                cont_lines.append(line.strip())
-            else:
-                if cont_lines:
-                    info[last_header] = '\n'.join(cont_lines).strip()
-                    cont_lines = []
-                if line.split(':', 1)[0] in info:
-                    last_header = line.split(':', 1)[0]
-                    info[last_header] = line.split(':', 1)[1].strip()
+
+        pkg_info = self.pkg_env[name][0].get_metadata('PKG-INFO')
+        return self.parse_pkg_info(pkg_info)
+
+    @staticmethod
+    def parse_pkg_info(pkg_info):
+        metadata_msg = email.message_from_string(pkg_info)
+        metadata_ver = metadata_msg.get('Metadata-Version')
+
+        info = {key: metadata_msg.get(key, '') for key in METADATA_KEYS}
+
+        # Optional Description field in body (Metadata spec >=2.1)
+        if not info['Description'] and metadata_ver.startswith('2'):
+            info['Description'] = metadata_msg.get_payload().strip()
+
         return info

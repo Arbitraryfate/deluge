@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009 Damien Churchill <damoxc@gmail.com>
 #
@@ -6,8 +5,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 import hashlib
 import logging
@@ -64,7 +61,7 @@ class Auth(JSONComponent):
     """
 
     def __init__(self, config):
-        super(Auth, self).__init__('Auth')
+        super().__init__('Auth')
         self.worker = LoopingCall(self._clean_sessions)
         self.config = config
 
@@ -103,9 +100,9 @@ class Auth(JSONComponent):
         checksum = str(make_checksum(session_id))
 
         request.addCookie(
-            b'_session_id',
+            '_session_id',
             session_id + checksum,
-            path=request.base + b'json',
+            path=request.base,
             expires=expires_str,
         )
 
@@ -163,10 +160,10 @@ class Auth(JSONComponent):
 
             _session_id = request.getCookie(b'_session_id')
             request.addCookie(
-                b'_session_id',
+                '_session_id',
                 _session_id,
-                path=request.base + b'json',
-                expires=expires_str.encode('utf8'),
+                path=request.base,
+                expires=expires_str,
             )
 
         if method:

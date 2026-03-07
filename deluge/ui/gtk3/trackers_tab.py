@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008 Andrew Resch <andrewresch@gmail.com>
 #
@@ -7,12 +6,10 @@
 # See LICENSE for more details.
 #
 
-from __future__ import unicode_literals
-
 import logging
 
 import deluge.component as component
-from deluge.common import ftime
+from deluge.common import anchorify_urls, ftime
 
 from .tab_data_funcs import fcount, ftranslate, fyes_no
 from .torrentdetails import Tab
@@ -22,9 +19,7 @@ log = logging.getLogger(__name__)
 
 class TrackersTab(Tab):
     def __init__(self):
-        super(TrackersTab, self).__init__(
-            'Trackers', 'trackers_tab', 'trackers_tab_label'
-        )
+        super().__init__('Trackers', 'trackers_tab', 'trackers_tab_label')
 
         self.add_tab_widget('summary_next_announce', ftime, ('next_announce',))
         self.add_tab_widget('summary_tracker', None, ('tracker_host',))
@@ -59,7 +54,10 @@ class TrackersTab(Tab):
         for widget in self.tab_widgets.values():
             txt = self.widget_status_as_fstr(widget, status)
             if widget.obj.get_text() != txt:
-                widget.obj.set_text(txt)
+                if 'tracker_status' in widget.status_keys:
+                    widget.obj.set_markup(anchorify_urls(txt))
+                else:
+                    widget.obj.set_text(txt)
 
     def clear(self):
         for widget in self.tab_widgets.values():

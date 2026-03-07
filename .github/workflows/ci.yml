@@ -6,60 +6,71 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      core-dump:
+        description: "Set to 1 to enable retrieving core dump from crashes"
+        default: "0"
+
+env:
+  UV_SYSTEM_PYTHON: 1
 
 jobs:
   test-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.13"]
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Cache pip
-        uses: actions/cache@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          path: ~/.cache/pip
-          # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-pip-${{ hashFiles('tox.ini', 'setup.py', 'requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-
+          enable-cache: true
 
-      - name: Add libtorrent deb repository
-        uses: myci-actions/add-deb-repo@8
-        with:
-          repo: deb http://ppa.launchpad.net/libtorrent.org/1.2-daily/ubuntu focal main
-          repo-name: libtorrent
-          keys: 58E5430D9667FAEFFCA0B93F32309D6B9E009EDB
-          key-server: keyserver.ubuntu.com
-          install: python3-libtorrent-dbg
+      - name: Sets env var for security
+        if: (github.event_name == 'pull_request' && contains(github.event.pull_request.body, 'security_test')) || (github.event_name == 'push' && contains(github.event.head_commit.message, 'security_test'))
+        run: echo "SECURITY_TESTS=True" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip wheel
-          pip install -r requirements.txt -r requirements-tests.txt
-          pip install -e .
+          uv pip install -r requirements-ci.txt
+          uv pip install -e .
 
-      - name: Setup core dump directory
+      - name: Install security dependencies
+        if: contains(env.SECURITY_TESTS, 'True')
+        run: |
+          wget -O- $TESTSSL_URL$TESTSSL_VER | tar xz
+          mv -t deluge/tests/data testssl.sh-$TESTSSL_VER/testssl.sh testssl.sh-$TESTSSL_VER/etc/;
+        env:
+          TESTSSL_VER: 3.0.6
+          TESTSSL_URL: https://codeload.github.com/drwetter/testssl.sh/tar.gz/refs/tags/v
+
+      - name: Setup core dump catch and store
+        if: github.event.inputs.core-dump == '1'
         run: |
           sudo mkdir /cores/ && sudo chmod 777 /cores/
           echo "/cores/%E.%p" | sudo tee /proc/sys/kernel/core_pattern
+          ulimit -c unlimited
+          sudo apt install glibc-tools
+          echo "DEBUG_PREFIX=catchsegv python -X dev -m" >> $GITHUB_ENV
 
       - name: Test with pytest
         run: |
-          ulimit -c unlimited  # Enable core dumps to be captured
-          cp /usr/lib/python3/dist-packages/libtorrent*.so $GITHUB_WORKSPACE/deluge
           python -c 'from deluge._libtorrent import lt; print(lt.__version__)';
-          catchsegv python -X dev -m pytest -v -m "not (todo or gtkui or security)" deluge
+          $DEBUG_PREFIX pytest -v -m "not (todo or gtkui or internet)" deluge
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         # capture all crashes as build artifacts
         if: failure()
         with:
@@ -67,37 +78,50 @@ jobs:
           path: /cores
 
   test-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ["3.10"]
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.6"
+          python-version: ${{ matrix.python-version }}
 
-      - name: Cache pip
-        uses: actions/cache@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          path: '%LOCALAPPDATA%\pip\Cache'
-          # Look to see if there is a cache hit for the corresponding requirements file
-          key: ${{ runner.os }}-pip-${{ hashFiles('tox.ini', 'setup.py', 'requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-
+          enable-cache: true
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip wheel certifi
-          python -m pip install deluge-libtorrent
-          pip install -r requirements.txt -r requirements-tests.txt
-          pip install -e .
+          uv pip install -r requirements-ci.txt
+          uv pip install -e .
+
+      - name: Install OpenSSL
+        run: |
+          choco install openssl.light --version=1.1.1.20181020
+
+      - name: Patch Twisted
+        shell: bash
+        run: |
+          # Find the site-packages where Twisted source installed
+          SITE_PACKAGES=$(python -c "import sysconfig; print(sysconfig.get_path('purelib'))")
+          echo "Site packages at: $SITE_PACKAGES"
+
+          cd "$SITE_PACKAGES"
+          patch -p1 < "$GITHUB_WORKSPACE/.github/patches/twisted-glib-windows.patch"
+
+          echo "Patch applied successfully"
 
       - name: Test with pytest
         run: |
           python -c 'import libtorrent as lt; print(lt.__version__)';
-          pytest -m "not (todo or gtkui or security)" deluge
+          pytest -v -m "not (todo or gtkui or security or internet)" deluge

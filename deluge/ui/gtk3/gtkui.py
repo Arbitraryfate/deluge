@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007-2009 Andrew Resch <andrewresch@gmail.com>
 #
@@ -8,8 +7,6 @@
 #
 # pylint: disable=wrong-import-position
 
-from __future__ import division, unicode_literals
-
 import logging
 import os
 import signal
@@ -18,8 +15,8 @@ import time
 
 import gi  # isort:skip (Required before Gtk import).
 
-gi.require_version('Gtk', '3.0')  # NOQA: E402
-gi.require_version('Gdk', '3.0')  # NOQA: E402
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
 
 # isort:imports-thirdparty
 from gi.repository.GLib import set_prgname
@@ -32,7 +29,7 @@ try:
     # Install twisted reactor, before any other modules import reactor.
     reactor = gtk3reactor.install()
 except ReactorAlreadyInstalledError:
-    # Running unit tests so trial already installed a rector
+    # Running unit tests so already installed a rector
     from twisted.internet import reactor
 
 # isort:imports-firstparty
@@ -87,12 +84,13 @@ except ImportError:
 
 DEFAULT_PREFS = {
     'standalone': True,
+    'prefer_dark_theme': False,
     'interactive_add': True,
     'focus_add_dialog': True,
     'enable_system_tray': True,
     'close_to_tray': False,
     'start_in_tray': False,
-    'enable_appindicator': False,
+    'enable_appindicator': True,
     'lock_tray': False,
     'tray_password': '',
     'check_new_releases': True,
@@ -140,7 +138,7 @@ DEFAULT_PREFS = {
 }
 
 
-class GtkUI(object):
+class GtkUI:
     def __init__(self, args):
         # Setup gtkbuilder/glade translation
         setup_translation()
@@ -326,8 +324,7 @@ class GtkUI(object):
                 err_msg = _(
                     'Only Thin Client mode is available due to libtorrent import error: %s\n'
                     'To use Standalone mode, please see logs for error details.'
-                    % (str(ex))
-                )
+                ) % (str(ex))
 
         except ImportError as ex:
             log.exception(ex)

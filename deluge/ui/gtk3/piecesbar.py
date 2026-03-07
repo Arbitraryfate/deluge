@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Pedro Algarvio <pedro@algarvio.me>
 #
@@ -7,15 +6,13 @@
 # See LICENSE for more details.
 #
 
-from __future__ import division, unicode_literals
-
 from math import pi
 
 import gi  # isort:skip (Version check required before import).
 
-gi.require_version('PangoCairo', '1.0')  # NOQA: E402
-gi.require_foreign('cairo')  # NOQA: E402
-gi.require_version('cairo', '1.0')  # NOQA: E402
+gi.require_version('PangoCairo', '1.0')
+gi.require_foreign('cairo')
+gi.require_version('cairo', '1.0')
 
 # isort:imports-thirdparty
 import cairo  # Backward compat cairo <= 1.15
@@ -24,7 +21,6 @@ from gi.repository.Gtk import DrawingArea, ProgressBar, StateFlags
 from gi.repository.Pango import SCALE, Weight
 
 # isort:imports-firstparty
-from deluge.common import PY2
 from deluge.configmanager import ConfigManager
 
 COLOR_STATES = ['missing', 'waiting', 'downloading', 'completed']
@@ -32,10 +28,10 @@ COLOR_STATES = ['missing', 'waiting', 'downloading', 'completed']
 
 class PiecesBar(DrawingArea):
     # Draw in response to an draw
-    __gsignals__ = {'draw': 'override'} if not PY2 else {b'draw': b'override'}
+    __gsignals__ = {'draw': 'override'}
 
     def __init__(self):
-        super(PiecesBar, self).__init__()
+        super().__init__()
         # Get progress bar styles, in order to keep font consistency
         pb = ProgressBar()
         pb_style = pb.get_style_context()
@@ -55,7 +51,6 @@ class PiecesBar(DrawingArea):
         self.text = self.prev_text = ''
         self.fraction = self.prev_fraction = 0
         self.progress_overlay = self.text_overlay = self.pieces_overlay = None
-        self.cr = None
 
         self.connect('size-allocate', self.do_size_allocate_event)
         self.show()
@@ -67,34 +62,30 @@ class PiecesBar(DrawingArea):
         self.height = size.height
 
     # Handle the draw by drawing
-    def do_draw(self, event):
-        # Create cairo context
-        self.cr = self.props.window.cairo_create()
-        self.cr.set_line_width(max(self.cr.device_to_user_distance(0.5, 0.5)))
+    def do_draw(self, ctx):
+        ctx.set_line_width(max(ctx.device_to_user_distance(0.5, 0.5)))
 
         # Restrict Cairo to the exposed area; avoid extra work
-        self.roundcorners_clipping()
+        self.roundcorners_clipping(ctx)
 
-        self.draw_pieces()
-        self.draw_progress_overlay()
-        self.write_text()
-        self.roundcorners_border()
+        self.draw_pieces(ctx)
+        self.draw_progress_overlay(ctx)
+        self.write_text(ctx)
+        self.roundcorners_border(ctx)
 
         # Drawn once, update width, height
         if self.resized():
             self.prev_width = self.width
             self.prev_height = self.height
 
-    def roundcorners_clipping(self):
-        self.create_roundcorners_subpath(self.cr, 0, 0, self.width, self.height)
-        self.cr.clip()
+    def roundcorners_clipping(self, ctx):
+        self.create_roundcorners_subpath(ctx, 0, 0, self.width, self.height)
+        ctx.clip()
 
-    def roundcorners_border(self):
-        self.create_roundcorners_subpath(
-            self.cr, 0.5, 0.5, self.width - 1, self.height - 1
-        )
-        self.cr.set_source_rgba(0, 0, 0, 0.9)
-        self.cr.stroke()
+    def roundcorners_border(self, ctx):
+        self.create_roundcorners_subpath(ctx, 0.5, 0.5, self.width - 1, self.height - 1)
+        ctx.set_source_rgba(0, 0, 0, 0.9)
+        ctx.stroke()
 
     @staticmethod
     def create_roundcorners_subpath(ctx, x, y, width, height):
@@ -110,11 +101,9 @@ class PiecesBar(DrawingArea):
         ctx.arc(x + radius, y + height - radius, radius, 90 * degrees, 180 * degrees)
         ctx.arc(x + radius, y + radius, radius, 180 * degrees, 270 * degrees)
         ctx.close_path()
-        return ctx
 
-    def draw_pieces(self):
+    def draw_pieces(self, ctx):
         if not self.num_pieces:
-            # Nothing to draw.
             return
 
         if (
@@ -126,7 +115,7 @@ class PiecesBar(DrawingArea):
             self.pieces_overlay = cairo.ImageSurface(
                 cairo.FORMAT_ARGB32, self.width, self.height
             )
-            ctx = cairo.Context(self.pieces_overlay)
+            pieces_ctx = cairo.Context(self.pieces_overlay)
 
             if self.pieces:
                 pieces = self.pieces
@@ -143,17 +132,16 @@ class PiecesBar(DrawingArea):
                 for state in COLOR_STATES
             ]
             for state in pieces:
-                ctx.set_source_rgb(*pieces_colors[state])
-                ctx.rectangle(start_pos, 0, piece_width, self.height)
-                ctx.fill()
+                pieces_ctx.set_source_rgb(*pieces_colors[state])
+                pieces_ctx.rectangle(start_pos, 0, piece_width, self.height)
+                pieces_ctx.fill()
                 start_pos += piece_width
 
-        self.cr.set_source_surface(self.pieces_overlay)
-        self.cr.paint()
+        ctx.set_source_surface(self.pieces_overlay)
+        ctx.paint()
 
-    def draw_progress_overlay(self):
+    def draw_progress_overlay(self, ctx):
         if not self.text:
-            # Nothing useful to draw, return now!
             return
 
         if (
@@ -165,16 +153,15 @@ class PiecesBar(DrawingArea):
             self.progress_overlay = cairo.ImageSurface(
                 cairo.FORMAT_ARGB32, self.width, self.height
             )
-            ctx = cairo.Context(self.progress_overlay)
-            ctx.set_source_rgba(0.1, 0.1, 0.1, 0.3)  # Transparent
-            ctx.rectangle(0, 0, self.width * self.fraction, self.height)
-            ctx.fill()
-        self.cr.set_source_surface(self.progress_overlay)
-        self.cr.paint()
+            progress_ctx = cairo.Context(self.progress_overlay)
+            progress_ctx.set_source_rgba(0.1, 0.1, 0.1, 0.3)  # Transparent
+            progress_ctx.rectangle(0, 0, self.width * self.fraction, self.height)
+            progress_ctx.fill()
+        ctx.set_source_surface(self.progress_overlay)
+        ctx.paint()
 
-    def write_text(self):
+    def write_text(self, ctx):
         if not self.text:
-            # Nothing useful to draw, return now!
             return
 
         if self.resized() or self.text != self.prev_text or self.text_overlay is None:
@@ -182,8 +169,8 @@ class PiecesBar(DrawingArea):
             self.text_overlay = cairo.ImageSurface(
                 cairo.FORMAT_ARGB32, self.width, self.height
             )
-            ctx = cairo.Context(self.text_overlay)
-            pl = PangoCairo.create_layout(ctx)
+            text_ctx = cairo.Context(self.text_overlay)
+            pl = PangoCairo.create_layout(text_ctx)
             pl.set_font_description(self.text_font)
             pl.set_width(-1)  # No text wrapping
             pl.set_text(self.text, -1)
@@ -192,12 +179,14 @@ class PiecesBar(DrawingArea):
             text_height = plsize[1] // SCALE
             area_width_without_text = self.width - text_width
             area_height_without_text = self.height - text_height
-            ctx.move_to(area_width_without_text // 2, area_height_without_text // 2)
-            ctx.set_source_rgb(1, 1, 1)
-            PangoCairo.update_layout(ctx, pl)
-            PangoCairo.show_layout(ctx, pl)
-        self.cr.set_source_surface(self.text_overlay)
-        self.cr.paint()
+            text_ctx.move_to(
+                area_width_without_text // 2, area_height_without_text // 2
+            )
+            text_ctx.set_source_rgb(1, 1, 1)
+            PangoCairo.update_layout(text_ctx, pl)
+            PangoCairo.show_layout(text_ctx, pl)
+        ctx.set_source_surface(self.text_overlay)
+        ctx.paint()
 
     def resized(self):
         return self.prev_width != self.width or self.prev_height != self.height
@@ -230,7 +219,6 @@ class PiecesBar(DrawingArea):
         self.text = self.prev_text = ''
         self.fraction = self.prev_fraction = 0
         self.progress_overlay = self.text_overlay = self.pieces_overlay = None
-        self.cr = None
         self.update()
 
     def update(self):

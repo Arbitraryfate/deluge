@@ -736,7 +736,7 @@ and daemon (does not apply in Standalone mode).</property>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
                                 <property name="padding">5</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                             <child>
@@ -929,8 +929,6 @@ and daemon (does not apply in Standalone mode).</property>
                                                     <property name="width_chars">16</property>
                                                     <property name="text">********</property>
                                                     <property name="truncate_multiline">True</property>
-                                                    <property name="primary_icon_activatable">False</property>
-                                                    <property name="secondary_icon_activatable">False</property>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
@@ -967,6 +965,48 @@ and daemon (does not apply in Standalone mode).</property>
                                 <property name="fill">True</property>
                                 <property name="padding">5</property>
                                 <property name="position">2</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkFrame" id="frame_theme">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="label-xalign">0</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkAlignment" id="alignment_theme">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="top-padding">3</property>
+                                    <property name="left-padding">10</property>
+                                    <child>
+                                      <object class="GtkCheckButton" id="chk_prefer_dark_theme">
+                                        <property name="label" translatable="yes">Prefer Dark</property>
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">True</property>
+                                        <property name="receives-default">False</property>
+                                        <property name="tooltip_text" translatable="yes">If available, use dark variant of GTK theme.</property>
+                                        <property name="draw-indicator">True</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="label">
+                                  <object class="GtkLabel" id="label_theme">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Theme</property>
+                                    <attributes>
+                                      <attribute name="weight" value="bold"/>
+                                    </attributes>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">False</property>
+                                <property name="padding">5</property>
+                                <property name="position">3</property>
                               </packing>
                             </child>
                             <child>
@@ -1026,7 +1066,7 @@ and daemon (does not apply in Standalone mode).</property>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
                                 <property name="padding">5</property>
-                                <property name="position">3</property>
+                                <property name="position">4</property>
                               </packing>
                             </child>
                             <child>
@@ -1103,7 +1143,7 @@ and daemon (does not apply in Standalone mode).</property>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">4</property>
+                                <property name="position">5</property>
                               </packing>
                             </child>
                           </object>
@@ -1150,6 +1190,7 @@ and daemon (does not apply in Standalone mode).</property>
                                     <property name="top_padding">2</property>
                                     <property name="bottom_padding">2</property>
                                     <property name="left_padding">12</property>
+                                    <property name="right_padding">12</property>
                                     <child>
                                       <object class="GtkGrid" id="table9">
                                         <property name="visible">True</property>
@@ -1545,8 +1586,6 @@ used sparingly.</property>
                                               <object class="GtkSpinButton" id="spin_max_connections_per_second">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_max_conn_per_sec</property>
                                                 <property name="numeric">True</property>
                                               </object>
@@ -1559,8 +1598,6 @@ used sparingly.</property>
                                               <object class="GtkSpinButton" id="spin_max_half_open_connections">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_max_half_open_conn</property>
                                                 <property name="numeric">True</property>
                                               </object>
@@ -1624,8 +1661,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="tooltip_text" translatable="yes">The maximum number of connections allowed.  Set -1 for unlimited.</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_max_conn_global</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="snap_to_ticks">True</property>
@@ -1655,8 +1690,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="tooltip_text" translatable="yes">The maximum download speed for all torrents.  Set -1 for unlimited.</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_max_download</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="digits">1</property>
@@ -1672,8 +1705,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="tooltip_text" translatable="yes">The maximum upload speed for all torrents.  Set -1 for unlimited.</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_max_upload</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="digits">1</property>
@@ -1689,8 +1720,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="tooltip_text" translatable="yes">The maximum upload slots for all torrents.  Set -1 for unlimited.</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_max_upload_slots_global</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="snap_to_ticks">True</property>
@@ -1849,8 +1878,6 @@ used sparingly.</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="tooltip_text" translatable="yes">The maximum upload slots per torrent.  Set -1 for unlimited.</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <property name="adjustment">adjustment_spin_max_upload_slots_per_torrent</property>
                                             <property name="climb_rate">1</property>
                                             <property name="snap_to_ticks">True</property>
@@ -1866,8 +1893,6 @@ used sparingly.</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="tooltip_text" translatable="yes">The maximum number of connections per torrent.  Set -1 for unlimited.</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <property name="adjustment">adjustment_spin_max_conn_per_torrent</property>
                                             <property name="snap_to_ticks">True</property>
                                             <property name="numeric">True</property>
@@ -1930,8 +1955,6 @@ used sparingly.</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="tooltip_text" translatable="yes">The maximum number download speed per torrent.  Set -1 for unlimited.</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <property name="adjustment">adjustment_spin_max_download_per_torrent</property>
                                             <property name="digits">1</property>
                                             <property name="numeric">True</property>
@@ -1946,8 +1969,6 @@ used sparingly.</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="tooltip_text" translatable="yes">The maximum upload speed per torrent.  Set -1 for unlimited.</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <property name="adjustment">adjustment_spin_max_upload_per_torrent</property>
                                             <property name="digits">1</property>
                                             <property name="numeric">True</property>
@@ -2131,8 +2152,6 @@ used sparingly.</property>
                                                   <object class="GtkSpinButton" id="spin_active">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
-                                                    <property name="primary_icon_activatable">False</property>
-                                                    <property name="secondary_icon_activatable">False</property>
                                                     <property name="adjustment">adjustment_spin_active</property>
                                                     <property name="snap_to_ticks">True</property>
                                                     <property name="numeric">True</property>
@@ -2146,8 +2165,6 @@ used sparingly.</property>
                                                   <object class="GtkSpinButton" id="spin_seeding">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
-                                                    <property name="primary_icon_activatable">False</property>
-                                                    <property name="secondary_icon_activatable">False</property>
                                                     <property name="adjustment">adjustment_spin_seeding</property>
                                                     <property name="snap_to_ticks">True</property>
                                                     <property name="numeric">True</property>
@@ -2185,8 +2202,6 @@ used sparingly.</property>
                                                   <object class="GtkSpinButton" id="spin_downloading">
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">True</property>
-                                                    <property name="primary_icon_activatable">False</property>
-                                                    <property name="secondary_icon_activatable">False</property>
                                                     <property name="adjustment">adjustment_spin_downloading</property>
                                                     <property name="snap_to_ticks">True</property>
                                                     <property name="numeric">True</property>
@@ -2229,6 +2244,19 @@ used sparingly.</property>
                                                 <property name="expand">True</property>
                                                 <property name="fill">True</property>
                                                 <property name="position">1</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <object class="GtkCheckButton" id="chk_announce_to_all_tiers">
+                                                <property name="label" translatable="yes">Announce to trackers in all tiers</property>
+                                                <property name="tooltip-text" translatable="yes">Announces to one tracker from each tier in parallel (uTorrent behaviour).</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">True</property>
+                                                <property name="receives_default">False</property>
+                                                <property name="draw_indicator">True</property>
+                                              </object>
+                                              <packing>
+                                                <property name="position">2</property>
                                               </packing>
                                             </child>
                                             <child>
@@ -2323,8 +2351,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="invisible_char">•</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_seed_time_limit</property>
                                               </object>
                                               <packing>
@@ -2337,8 +2363,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="invisible_char">•</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_time_ratio_limit</property>
                                                 <property name="digits">2</property>
                                               </object>
@@ -2352,8 +2376,6 @@ used sparingly.</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="invisible_char">•</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_share_ratio_limit</property>
                                                 <property name="digits">2</property>
                                               </object>
@@ -2425,8 +2447,6 @@ used sparingly.</property>
                                                     <property name="sensitive">False</property>
                                                     <property name="can_focus">True</property>
                                                     <property name="invisible_char">•</property>
-                                                    <property name="primary_icon_activatable">False</property>
-                                                    <property name="secondary_icon_activatable">False</property>
                                                     <property name="adjustment">adjustment_share_ratio</property>
                                                     <property name="digits">2</property>
                                                     <property name="numeric">True</property>
@@ -2572,12 +2592,10 @@ used sparingly.</property>
                                       <object class="GtkEntry" id="entry_interface">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
-                                        <property name="tooltip_text" translatable="yes">The IP address of the interface to listen for incoming bittorrent connections on. Leave this empty if you want to use the default.</property>
-                                        <property name="max_length">15</property>
+                                        <property name="tooltip_text" translatable="yes">IP address or network interface name to listen for incoming BitTorrent connections. Leave empty to use system default.</property>
+                                        <property name="max_length">40</property>
                                         <property name="width_chars">15</property>
                                         <property name="truncate_multiline">True</property>
-                                        <property name="primary_icon_activatable">False</property>
-                                        <property name="secondary_icon_activatable">False</property>
                                       </object>
                                     </child>
                                   </object>
@@ -2586,7 +2604,7 @@ used sparingly.</property>
                                   <object class="GtkLabel" id="label110">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Incoming Address</property>
+                                    <property name="label" translatable="yes">Incoming Interface</property>
                                     <attributes>
                                       <attribute name="weight" value="bold"/>
                                     </attributes>
@@ -2628,8 +2646,6 @@ used sparingly.</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="max_length">5</property>
                                                 <property name="max_width_chars">6</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_incoming_port</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="snap_to_ticks">True</property>
@@ -2728,6 +2744,24 @@ used sparingly.</property>
                                               </packing>
                                             </child>
                                             <child>
+                                              <object class="GtkAlignment" id="alignment31">
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="left_padding">10</property>
+                                                <child>
+                                                  <object class="GtkSpinner" id="port_spinner">
+                                                    <property name="visible">False</property>
+                                                    <property name="can_focus">False</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                              <packing>
+                                                <property name="expand">False</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">2</property>
+                                              </packing>
+                                            </child>
+                                            <child>
                                               <object class="GtkAlignment" id="alignment48">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2742,7 +2776,7 @@ used sparingly.</property>
                                               <packing>
                                                 <property name="expand">False</property>
                                                 <property name="fill">True</property>
-                                                <property name="position">2</property>
+                                                <property name="position">3</property>
                                               </packing>
                                             </child>
                                           </object>
@@ -2793,14 +2827,12 @@ used sparingly.</property>
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="tooltip_text" translatable="yes">
-The network interface name or IP address for outgoing BitTorrent connections. (Leave empty for default.)
+                                          IP address or network interface name for outgoing BitTorrent connections. Leave empty to use system default.
                                         </property>
-                                        <property name="max_length">15</property>
+                                        <property name="max_length">40</property>
                                         <property name="invisible_char">●</property>
                                         <property name="width_chars">15</property>
                                         <property name="truncate_multiline">True</property>
-                                        <property name="primary_icon_activatable">False</property>
-                                        <property name="secondary_icon_activatable">False</property>
                                       </object>
                                     </child>
                                   </object>
@@ -2880,8 +2912,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                                 <property name="can_focus">True</property>
                                                 <property name="max_length">5</property>
                                                 <property name="width_chars">7</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_outgoing_port_min</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="snap_to_ticks">True</property>
@@ -2913,8 +2943,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                                 <property name="can_focus">True</property>
                                                 <property name="max_length">5</property>
                                                 <property name="width_chars">7</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_outgoing_port_max</property>
                                                 <property name="climb_rate">1</property>
                                                 <property name="snap_to_ticks">True</property>
@@ -3236,8 +3264,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                                 <property name="width_chars">1</property>
                                                 <property name="text">0x00</property>
                                                 <property name="truncate_multiline">True</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -3345,8 +3371,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                             <property name="can_focus">True</property>
                                             <property name="visibility">False</property>
                                             <property name="truncate_multiline">True</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -3370,8 +3394,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="truncate_multiline">True</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <signal name="paste-clipboard" handler="on_entry_proxy_host_paste_clipboard" swapped="no"/>
                                           </object>
                                           <packing>
@@ -3399,8 +3421,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                               <object class="GtkSpinButton" id="spin_proxy_port">
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_proxy_port</property>
                                                 <property name="numeric">True</property>
                                               </object>
@@ -3416,8 +3436,6 @@ The network interface name or IP address for outgoing BitTorrent connections. (L
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="truncate_multiline">True</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                           </object>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -3696,8 +3714,6 @@ the proxy instead of using the local DNS service</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="invisible_char">●</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <property name="adjustment">adjustment_cache_size</property>
                                             <property name="numeric">True</property>
                                             <property name="update_policy">if-valid</property>
@@ -3713,8 +3729,6 @@ the proxy instead of using the local DNS service</property>
                                             <property name="can_focus">True</property>
                                             <property name="max_length">5</property>
                                             <property name="invisible_char">●</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                             <property name="adjustment">adjustment_cache_expiry</property>
                                           </object>
                                           <packing>
@@ -4248,8 +4262,6 @@ the proxy instead of using the local DNS service</property>
                                             <property name="tooltip_text" translatable="yes">If Deluge cannot find the database file at this location it will fallback to using DNS to resolve the peer's country.</property>
                                             <property name="invisible_char">●</property>
                                             <property name="truncate_multiline">True</property>
-                                            <property name="primary_icon_activatable">False</property>
-                                            <property name="secondary_icon_activatable">False</property>
                                           </object>
                                           <packing>
                                             <property name="expand">False</property>
@@ -4427,8 +4439,6 @@ the proxy instead of using the local DNS service</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">True</property>
                                                 <property name="max_width_chars">6</property>
-                                                <property name="primary_icon_activatable">False</property>
-                                                <property name="secondary_icon_activatable">False</property>
                                                 <property name="adjustment">adjustment_spin_daemon_port</property>
                                               </object>
                                               <packing>

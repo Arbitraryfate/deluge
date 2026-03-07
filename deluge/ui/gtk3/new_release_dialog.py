@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008 Andrew Resch <andrewresch@gmail.com>
 #
@@ -6,8 +5,6 @@
 # the additional special exception to link portions of this program with the OpenSSL library.
 # See LICENSE for more details.
 #
-
-from __future__ import unicode_literals
 
 from gi.repository.Gtk import IconSize
 
@@ -17,7 +14,7 @@ from deluge.configmanager import ConfigManager
 from deluge.ui.client import client
 
 
-class NewReleaseDialog(object):
+class NewReleaseDialog:
     def __init__(self):
         pass
 
@@ -64,7 +61,7 @@ class NewReleaseDialog(object):
         self.dialog.show()
 
     def _on_button_goto_downloads(self, widget):
-        deluge.common.open_url_in_browser('http://deluge-torrent.org')
+        deluge.common.open_url_in_browser('https://deluge-torrent.org')
         self.config['show_new_releases'] = not self.chk_not_show_dialog.get_active()
         self.dialog.destroy()
 

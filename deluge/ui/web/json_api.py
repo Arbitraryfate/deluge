@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009-2010 Damien Churchill <damoxc@gmail.com>
 #
@@ -7,8 +6,7 @@
 # See LICENSE for more details.
 #
 
-from __future__ import division, unicode_literals
-
+import email.message
 import json
 import logging
 import os
@@ -16,7 +14,6 @@ import shutil
 import tempfile
 from base64 import b64encode
 from types import FunctionType
-from xml.sax.saxutils import escape as xml_escape
 
 from twisted.internet import defer, reactor
 from twisted.internet.defer import Deferred, DeferredList
@@ -25,21 +22,21 @@ from twisted.web import http, resource, server
 from deluge import component, httpdownloader
 from deluge.common import AUTH_LEVEL_DEFAULT, get_magnet_info, is_magnet
 from deluge.configmanager import get_config_dir
+from deluge.decorators import maybe_coroutine
 from deluge.error import NotAuthorizedError
 from deluge.i18n import get_languages
-from deluge.ui.client import Client, client
+from deluge.ui.client import client
 from deluge.ui.common import FileTree2, TorrentInfo
 from deluge.ui.coreconfig import CoreConfig
 from deluge.ui.hostlist import HostList
 from deluge.ui.sessionproxy import SessionProxy
-from deluge.ui.web.common import _
 
 log = logging.getLogger(__name__)
 
 
 class JSONComponent(component.Component):
     def __init__(self, name, interval=1, depend=None):
-        super(JSONComponent, self).__init__(name, interval, depend)
+        super().__init__(name, interval, depend)
         self._json = component.get('JSON')
         self._json.register_object(self, name)
 
@@ -146,7 +143,7 @@ class JSON(resource.Resource, component.Component):
             params = request_data['params']
             request_id = request_data['id']
         except KeyError as ex:
-            message = 'Invalid JSON request, missing param %s in %s' % (
+            message = 'Invalid JSON request, missing param {} in {}'.format(
                 ex,
                 request_data,
             )
@@ -167,7 +164,7 @@ class JSON(resource.Resource, component.Component):
         except Exception as ex:
             log.error('Error calling method `%s`: %s', method, ex)
             log.exception(ex)
-            error = {'message': '%s: %s' % (ex.__class__.__name__, str(ex)), 'code': 3}
+            error = {'message': f'{ex.__class__.__name__}: {str(ex)}', 'code': 3}
 
         return request_id, result, error
 
@@ -184,7 +181,7 @@ class JSON(resource.Resource, component.Component):
         """
         log.error(reason)
         response['error'] = {
-            'message': '%s: %s' % (reason.__class__.__name__, str(reason)),
+            'message': f'{reason.__class__.__name__}: {str(reason)}',
             'code': 4,
         }
         return self._send_response(request, response)
@@ -194,7 +191,9 @@ class JSON(resource.Resource, component.Component):
         Handler to take the json data as a string and pass it on to the
         _handle_request method for further processing.
         """
-        content_type = request.getHeader(b'content-type').decode()
+        message = email.message.EmailMessage()
+        message['content-type'] = request.getHeader(b'content-type').decode()
+        content_type = message.get_content_type()
         if content_type != 'application/json':
             message = 'Invalid JSON request content-type: %s' % content_type
             raise JSONException(message)
@@ -221,7 +220,7 @@ class JSON(resource.Resource, component.Component):
             'id': None,
             'error': {
                 'code': 5,
-                'message': '%s: %s' % (reason.__class__.__name__, str(reason)),
+                'message': f'{reason.__class__.__name__}: {str(reason)}',
             },
         }
         return self._send_response(request, response)
@@ -288,7 +287,7 @@ class JSON(resource.Resource, component.Component):
 FILES_KEYS = ['files', 'file_progress', 'file_priorities']
 
 
-class EventQueue(object):
+class EventQueue:
     """
     This class subscribes to events from the core and stores them until all
     the subscribed listeners have received the events.
@@ -378,10 +377,8 @@ class WebApi(JSONComponent):
     methods available from the core RPC.
     """
 
-    XSS_VULN_KEYS = ['name', 'message', 'comment', 'tracker_status', 'peers']
-
     def __init__(self):
-        super(WebApi, self).__init__('Web', depend=['SessionProxy'])
+        super().__init__('Web', depend=['SessionProxy'])
         self.hostlist = HostList()
         self.core_config = CoreConfig()
         self.event_queue = EventQueue()
@@ -518,7 +515,7 @@ class WebApi(JSONComponent):
             return d
 
         def got_stats(stats):
-            ui_info['stats']['num_connections'] = stats['num_peers']
+            ui_info['stats']['num_connections'] = stats['peer.num_peers_connected']
             ui_info['stats']['upload_rate'] = stats['payload_upload_rate']
             ui_info['stats']['download_rate'] = stats['payload_download_rate']
             ui_info['stats']['download_protocol_rate'] = (
@@ -527,9 +524,9 @@ class WebApi(JSONComponent):
             ui_info['stats']['upload_protocol_rate'] = (
                 stats['upload_rate'] - stats['payload_upload_rate']
             )
-            ui_info['stats']['dht_nodes'] = stats['dht_nodes']
+            ui_info['stats']['dht_nodes'] = stats['dht.dht_nodes']
             ui_info['stats']['has_incoming_connections'] = stats[
-                'has_incoming_connections'
+                'net.has_incoming_connections'
             ]
 
         def got_filters(filters):
@@ -555,13 +552,13 @@ class WebApi(JSONComponent):
 
         d3 = client.core.get_session_status(
             [
-                'num_peers',
+                'peer.num_peers_connected',
                 'payload_download_rate',
                 'payload_upload_rate',
                 'download_rate',
                 'upload_rate',
-                'dht_nodes',
-                'has_incoming_connections',
+                'dht.dht_nodes',
+                'net.has_incoming_connections',
             ]
         )
         d3.addCallback(got_stats)
@@ -584,7 +581,7 @@ class WebApi(JSONComponent):
         paths = []
         info = {}
         for index, torrent_file in enumerate(files):
-            path = xml_escape(torrent_file['path'])
+            path = torrent_file['path']
             paths.append(path)
             torrent_file['progress'] = file_progress[index]
             torrent_file['priority'] = file_priorities[index]
@@ -605,7 +602,10 @@ class WebApi(JSONComponent):
 
                 progresses = dirinfo.setdefault('progresses', [])
                 progresses.append(torrent_file['size'] * torrent_file['progress'] / 100)
-                dirinfo['progress'] = sum(progresses) / dirinfo['size'] * 100
+                if dirinfo['size'] > 0:
+                    dirinfo['progress'] = sum(progresses) / dirinfo['size'] * 100
+                else:
+                    dirinfo['progress'] = 100
                 dirinfo['path'] = dirname
                 dirname = os.path.dirname(dirname)
 
@@ -621,25 +621,10 @@ class WebApi(JSONComponent):
         file_tree.walk(walk)
         d.callback(file_tree.get_tree())
 
-    def _on_torrent_status(self, torrent, d):
-        for key in self.XSS_VULN_KEYS:
-            try:
-                if key == 'peers':
-                    for peer in torrent[key]:
-                        peer['client'] = xml_escape(peer['client'])
-                else:
-                    torrent[key] = xml_escape(torrent[key])
-            except KeyError:
-                pass
-        d.callback(torrent)
-
     @export
     def get_torrent_status(self, torrent_id, keys):
         """Get the status for a torrent, filtered by status keys."""
-        main_deferred = Deferred()
-        d = component.get('SessionProxy').get_torrent_status(torrent_id, keys)
-        d.addCallback(self._on_torrent_status, main_deferred)
-        return main_deferred
+        return component.get('SessionProxy').get_torrent_status(torrent_id, keys)
 
     @export
     def get_torrent_files(self, torrent_id):
@@ -761,18 +746,6 @@ class WebApi(JSONComponent):
                 deferreds.append(d)
         return DeferredList(deferreds, consumeErrors=False)
 
-    def _get_host(self, host_id):
-        """Information about a host from supplied host id.
-
-        Args:
-            host_id (str): The id of the host.
-
-        Returns:
-            list: The host information, empty list if not found.
-
-        """
-        return list(self.hostlist.get_host_info(host_id))
-
     @export
     def get_hosts(self):
         """
@@ -855,39 +828,18 @@ class WebApi(JSONComponent):
         client.start_daemon(port, get_config_dir())
 
     @export
-    def stop_daemon(self, host_id):
-        """
-        Stops a running daemon.
-
-        :param host_id: the hash id of the host
-        :type host_id: string
-        """
-        main_deferred = Deferred()
-        host = self._get_host(host_id)
-        if not host:
-            main_deferred.callback((False, _('Daemon does not exist')))
-            return main_deferred
-
+    @maybe_coroutine
+    async def stop_daemon(self, host_id):
         try:
+            await self.hostlist.connect_host(host_id)
+        except Exception as err:
+            msg = f'Error occurred stopping daemon: {err}'
+            result = (False, msg)
+        else:
+            client.daemon.shutdown()
+            result = (True,)
 
-            def on_connect(connected, c):
-                if not connected:
-                    main_deferred.callback((False, _('Daemon not running')))
-                    return
-                c.daemon.shutdown()
-                main_deferred.callback((True,))
-
-            def on_connect_failed(reason):
-                main_deferred.callback((False, reason))
-
-            host, port, user, password = host[1:5]
-            c = Client()
-            d = c.connect(host, port, user, password)
-            d.addCallback(on_connect, c)
-            d.addErrback(on_connect_failed)
-        except Exception:
-            main_deferred.callback((False, 'An error occurred'))
-        return main_deferred
+        return Deferred().callback(result)
 
     @export
     def get_config(self):
@@ -999,6 +951,16 @@ class WebApi(JSONComponent):
         """
         return self.event_queue.get_events(__request__.session_id)
 
+    @export
+    def set_theme(self, theme):
+        """
+        Sets a new Theme to the WebUI
+
+        Args:
+            theme (str): the theme to apply
+        """
+        component.get('DelugeWeb').set_theme(theme)
+
 
 class WebUtils(JSONComponent):
     """
@@ -1006,7 +968,7 @@ class WebUtils(JSONComponent):
     """
 
     def __init__(self):
-        super(WebUtils, self).__init__('WebUtils')
+        super().__init__('WebUtils')
 
     @export
     def get_languages(self):
@@ -1017,3 +979,13 @@ class WebUtils(JSONComponent):
              list: of tuples ``[(lang-id, language-name), ...]``
         """
         return get_languages()
+
+    @export
+    def get_themes(self):
+        """
+        Get the available themes
+
+        Returns:
+            list: of themes ``[theme1, theme2, ...]``
+        """
+        return component.get('DelugeWeb').get_themes()
